@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
 import sqlite3
+import ffmpeg
 
 ROOT_DIR = Path('.')
 EXTENSIONS = ['.mkv', '.mp4']
@@ -15,6 +17,7 @@ def scan_directory(root_path):
         
     new_files = [f for f in all_files if f not in existing_files]
     print(f"Found {len(new_files)} new videos to process.")
+    
     return new_files
     
 if __name__ == "__main__":

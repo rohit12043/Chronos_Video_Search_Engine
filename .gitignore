@@ -1,0 +1,11 @@
+# Ignore Database
+*.db
+
+# Ignore Videos & Audio
+*.mp4
+*.mkv
+*.mp3
+
+# Ignore Temp/Cache
+__pycache__/
+*.pyc
