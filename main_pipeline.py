@@ -1,6 +1,8 @@
 import os, ffmpeg
-import indexer, database, transcriber
+import indexer, database, transcriber, subtitle_utils
 
+
+    
 def get_video_metadata(file_path):
     filename = os.path.basename(file_path)
     
@@ -15,27 +17,34 @@ def get_video_metadata(file_path):
         print(f"FFmpeg Error: {e}")
         duration = 0.0
         
-    return file_path, filename, duration
+    return filename, duration
 
 def run():
     database.create_tables()
     video_files = indexer.scan_directory(".")
 
     for video_path in video_files:
-        path, name, dur = get_video_metadata(video_path)
+        name, dur = get_video_metadata(video_path)
         
         print(f"Inserting: {name} ({dur}s)")
         
-        video_id = database.insert_video(path, name, dur)
+        video_id = database.insert_video(video_path, name, dur)
         
         if not video_id:
             print("Skipping, (already in DB)")
             continue
         
         temp_audio = "temp_audio.mp3"
+        temp_srt = "embedded.srt"
         try:
-            print("!! Extracting & Transcribing... !!")
-            segments = transcriber.extract_transcript(video_path, temp_audio)
+            print("!! Processing video !!")
+            srt_index = transcriber.get_text_subtitle_stream(video_path)
+            if srt_index is not None and transcriber.extract_embedded_subtitles(video_path, temp_srt):
+                print(f"Using embedded subtitles: 0:s:{srt_index}")
+                segments = subtitle_utils.parse_srt(temp_srt)
+            else:
+                print("No subtitles found, running Whisper model")
+                segments = transcriber.extract_transcript(video_path, temp_audio)
             
             if segments:
                 print(f"!! Saving  {len(segments)} subtitle lines... !!")
