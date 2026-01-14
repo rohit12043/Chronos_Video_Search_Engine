@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Frontend</title>
+        <link rel="stylesheet" href="/templates/styles.css">
+    </head>
+
+    <body id="body">
+        <div class="search">
+            <button id="switch">☀️</button>
+            <label for="">Enter your query:</label>
+            <input id="input">
+        </div>
+        <div class="results">
+
+        </div>
+        <script>
+            const input = document.getElementById("input");
+            const switchBtn = document.getElementById("switch");
+            const body = document.getElementById("body");
+
+            switchBtn.addEventListener("click", () => {
+                const currentColor = getComputedStyle(body).backgroundColor;
+                body.style.backgroundColor = (currentColor === "rgb(228, 119, 119)") ? "black" : "rgb(228, 119, 119)";
+            });
+
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, "0")}`
+            }
+            input.addEventListener("keydown", async (event) => {
+                if (event.key === "Enter") {
+                    const query = input.value;
+                    const url = `http://127.0.0.1:8000/search?q=${query}`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    console.log(data.results);
+
+                    const results = document.querySelector(".results")
+                    results.innerHTML = ""
+
+                    data.results.forEach(r => {
+                        const div = document.createElement("div");
+                        div.innerHTML = `<strong>${r.filename}</strong> [${formatTime(r.start)}]: ${r.text}`;
+                        results.appendChild(div);
+                    })
+                }
+            });
+
+        </script>
+
+    </body>
+
+</html>
