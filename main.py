@@ -1,3 +1,4 @@
+import re
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +20,11 @@ def get_video_path(video_id):
         
 @app.get('/search')
 def get_video_info(q: str):
+    q_clean = re.sub(r'[^a-zA-Z0-9\s]', ' ', q).strip()
+    if not q_clean:
+        return {"count": 0, "results": []}
+
+    q = f'"{q_clean}"'
     results = []
     with sqlite3.connect(DB_NAME) as db:
         db.row_factory = sqlite3.Row
