@@ -1,15 +1,24 @@
+import os
 import re
+import uuid
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
+
+from fastapi.staticfiles import StaticFiles
 import clipper 
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'],
 )
+app.mount("/static", StaticFiles(directory="templates"), name="static")
 DB_NAME = "vid_database.db"
+
+@app.get("/")
+def read_root():
+    return FileResponse("templates/index.html")
 
 def get_video_path(video_id):
     with sqlite3.connect(DB_NAME) as db:
@@ -31,35 +40,46 @@ def get_video_info(q: str):
         cursor = db.cursor()
         
         sql = """
-        SELECT Videos.id as video_id, Videos.filename, Subtitles.start_time, Subtitles.text_content
+        SELECT Videos.id as video_id, Videos.filename, Subtitles.start_time, Subtitles.end_time, Subtitles.text_content
         From Subtitles
         JOIN Videos on Subtitles.video_id = Videos.id
         JOIN Subtitles_Idx on Subtitles.id = Subtitles_Idx.rowid
         WHERE Subtitles_Idx MATCH ?
         ORDER BY rank
-        LIMIT 50;
+        LIMIT 10;
         """
         cursor.execute(sql, (q,))
         rows = cursor.fetchall()
+        
+        rows.sort(key=lambda r: r['start_time'])
         
         for r in rows:
             results.append({
                 "video_id": r["video_id"],
                 "filename": r["filename"],
                 "start": r["start_time"],
+                "end": r["end_time"],
                 "text": r["text_content"]
             })
     return {"count": len(results), "results": results}
 
 @app.get("/watch/{video_id}")
-def watch_clip(video_id: int, start: float):
+def watch_clip(video_id: int, start: float, end: float):
     video_path = get_video_path(video_id)
     if not video_path: raise HTTPException(status_code=404, detail="Video not found")
-    output_filename = f"clip_{video_id}_{start}.mp4"
-    
-    success = clipper.create_clip(video_path, output_filename, start, 10)
-    
-    if success:
-        return FileResponse(output_filename, media_type="video/mp4")
+
+    start_padded = max(0, start - 0.5)
+    end_padded = end + 1.0 
+    duration = max(4.0, end_padded - start_padded)
+
+    output_filename = f"clip_{video_id}_{start_padded:.2f}_{end_padded:.2f}.mp4"
+
+    if not os.path.exists(output_filename):
+        print(f"Generating new clip: {output_filename}") 
+        success = clipper.create_clip(video_path, output_filename, start_padded, duration)
+        if not success:
+            raise HTTPException(status_code=500, detail="FFmpeg failed")
     else:
-        raise HTTPException(status_code=500, detail="FFmpeg failed to create clip")
+        print(f"Serving cached clip: {output_filename}")
+    
+    return FileResponse(output_filename, media_type="video/mp4")

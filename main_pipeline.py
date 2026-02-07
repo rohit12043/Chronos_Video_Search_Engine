@@ -36,15 +36,26 @@ def run():
         
         temp_audio = "temp_audio.mp3"
         temp_srt = "embedded.srt"
+        
+        sidecar_path = os.path.splitext()[0] + ".srt"
         try:
             print("!! Processing video !!")
-            srt_index = transcriber.get_text_subtitle_stream(video_path)
-            if srt_index is not None and transcriber.extract_embedded_subtitles(video_path, temp_srt):
-                print(f"Using embedded subtitles: 0:s:{srt_index}")
-                segments = subtitle_utils.parse_srt(temp_srt)
+            segments = []
+            
+            if os.path.exists(sidecar_path):
+                print(f"Using sidecar SRT: {os.path.basename(sidecar_path)}")
+                segments = subtitle_utils.parse_srt(sidecar_path)
+            
+                
             else:
-                print("No subtitles found, running Whisper model")
-                segments = transcriber.extract_transcript(video_path, temp_audio)
+                srt_index = transcriber.get_text_subtitle_stream(video_path)
+                if srt_index is not None and transcriber.extract_embedded_subtitles(video_path, temp_srt):
+                    print(f"Using embedded subtitles: 0:s:{srt_index}")
+                    segments = subtitle_utils.parse_srt(temp_srt)
+                    if os.path.exists(temp_srt): os.remove(temp_srt)
+                else:
+                    print("No subtitles found, running Whisper model")
+                    segments = transcriber.extract_transcript(video_path, temp_audio)
             
             if segments:
                 print(f"!! Saving  {len(segments)} subtitle lines... !!")
