@@ -1,168 +1,175 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chronos Search</title>
+    <style>
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: sans-serif;
+        padding: 20px;
+      }
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Chronos Search</title>
-        <style>
-            body {
-                background-color: #121212;
-                color: #e0e0e0;
-                font-family: sans-serif;
-                padding: 20px;
-            }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
 
-            .container {
-                max-width: 800px;
-                margin: 0 auto;
-            }
+      .search-box {
+        width: 100%;
+        padding: 15px;
+        font-size: 18px;
+        border-radius: 8px;
+        border: none;
+        background: #333;
+        color: white;
+        margin-bottom: 20px;
+      }
 
-            .search-box {
-                width: 100%;
-                padding: 15px;
-                font-size: 18px;
-                border-radius: 8px;
-                border: none;
-                background: #333;
-                color: white;
-                margin-bottom: 20px;
-            }
+      .result-card {
+        background: #1e1e1e;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: 0.2s;
+        border-left: 4px solid #bb86fc;
+      }
 
-            .result-card {
-                background: #1e1e1e;
-                padding: 15px;
-                margin-bottom: 10px;
-                border-radius: 5px;
-                cursor: pointer;
-                transition: 0.2s;
-                border-left: 4px solid #bb86fc;
-            }
+      .result-card:hover {
+        background: #2c2c2c;
+      }
 
-            .result-card:hover {
-                background: #2c2c2c;
-            }
+      .meta {
+        color: #888;
+        font-size: 0.8em;
+        margin-bottom: 5px;
+      }
 
-            .meta {
-                color: #888;
-                font-size: 0.8em;
-                margin-bottom: 5px;
-            }
+      .text {
+        font-size: 1.1em;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        aspect-ratio: 16/9;
+      }
 
-            .text {
-                font-size: 1.1em;
-            }
+      #playerOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
 
-            #playerOverlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.9);
-                justify-content: center;
-                align-items: center;
-                flex-direction: column;
-            }
+      video {
+        max-width: 90%;
+        max-height: 80vh;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      }
 
-            video {
-                max-width: 90%;
-                max-height: 80vh;
-                border-radius: 8px;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            }
+      .close-btn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #cf6679;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
 
-            .close-btn {
-                margin-top: 20px;
-                padding: 10px 20px;
-                background: #cf6679;
-                border: none;
-                color: white;
-                cursor: pointer;
-                font-size: 16px;
-                border-radius: 5px;
-            }
-        </style>
-    </head>
+  <body>
+    <div class="container">
+      <h1>🕰️ Chronos</h1>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-box"
+        placeholder="Search quote... (Press Enter)"
+      />
+      <div id="resultsArea"></div>
+    </div>
 
-    <body>
+    <div id="playerOverlay">
+      <video id="videoPlayer" controls></video>
+      <button class="close-btn" onclick="closePlayer()">Close</button>
+    </div>
 
-        <div class="container">
-            <h1>🕰️ Chronos</h1>
-            <input type="text" id="searchInput" class="search-box" placeholder="Search quote... (Press Enter)">
-            <div id="resultsArea"></div>
-        </div>
+    <script>
+      const searchInput = document.getElementById("searchInput");
+      const resultsArea = document.getElementById("resultsArea");
+      const playerOverlay = document.getElementById("playerOverlay");
+      const videoPlayer = document.getElementById("videoPlayer");
 
-        <div id="playerOverlay">
-            <video id="videoPlayer" controls></video>
-            <button class="close-btn" onclick="closePlayer()">Close</button>
-        </div>
+      searchInput.addEventListener("keypress", async (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const query = searchInput.value;
+          console.log(`Searching for: ${query}`);
 
-        <script>
-            const searchInput = document.getElementById('searchInput');
-            const resultsArea = document.getElementById('resultsArea'); // Make sure your DIV ID matches this
-            const playerOverlay = document.getElementById('playerOverlay');
-            const videoPlayer = document.getElementById('videoPlayer');
+          const res = await fetch(`http://localhost:8000/search?q=${query}`);
+          const data = await res.json();
 
-            searchInput.addEventListener('keypress', async (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const query = searchInput.value;
-                    console.log(`Searching for: ${query}`); // Debug
+          resultsArea.innerHTML = "";
 
-                    const res = await fetch(`http://localhost:8000/search?q=${query}`);
-                    const data = await res.json();
+          if (data.results.length === 0) {
+            resultsArea.innerHTML = "<p>No results found.</p>";
+            return;
+          }
 
-                    resultsArea.innerHTML = '';
+          data.results.forEach((item) => {
+            const div = document.createElement("div");
+            div.className = "result-card";
+            const timeStr = new Date(item.start * 1000)
+              .toISOString()
+              .substr(14, 5);
+            div.innerHTML = `<div class="card"><img width="400" src="/thumbnail/${item.video_id}?time=${item.start}" loading="lazy" alt="Thumbnail"><div class="meta">${item.filename} @ ${timeStr}</div>"${item.text}"</div>`;
 
-                    if (data.results.length === 0) {
-                        resultsArea.innerHTML = "<p>No results found.</p>";
-                        return;
-                    }
+            div.onclick = function () {
+              console.log("Clicked:", item);
+              playClip(item.video_id, item.start, item.end);
+            };
+            resultsArea.appendChild(div);
+          });
+        }
+      });
 
-                    data.results.forEach(item => {
-                        const div = document.createElement('div');
-                        div.className = 'result-card';
-                        const timeStr = new Date(item.start * 1000).toISOString().substr(14, 5);
-                        div.innerHTML = `<div class="meta">${item.filename} @ ${timeStr}</div><div class="text">"${item.text}"</div>`;
+      function playClip(id, start, end) {
+        console.log(
+          `Requesting Clip -> ID: ${id}, Start: ${start}, End: ${end}`,
+        );
 
-                        // 4. FIX: Explicitly pass variables
-                        div.onclick = function () {
-                            console.log("Clicked:", item); // Debug
-                            playClip(item.video_id, item.start, item.end);
-                        };
-                        resultsArea.appendChild(div);
-                    });
-                }
-            });
+        // Check if data is missing
+        if (id === undefined || start === undefined || end === undefined) {
+          alert("Error: Missing timestamp data. Check console.");
+          return;
+        }
 
-            function playClip(id, start, end) {
-                console.log(`Requesting Clip -> ID: ${id}, Start: ${start}, End: ${end}`);
+        playerOverlay.style.display = "flex";
 
-                // Check if data is missing
-                if (id === undefined || start === undefined || end === undefined) {
-                    alert("Error: Missing timestamp data. Check console.");
-                    return;
-                }
+        const url = `http://localhost:8000/watch/${id}?start=${start}&end=${end}`;
+        console.log("Video URL:", url);
 
-                playerOverlay.style.display = 'flex';
+        videoPlayer.src = url;
+        videoPlayer.play().catch((e) => console.error("Playback failed:", e));
+      }
 
-                // 5. FIX: Construct URL carefully
-                const url = `http://localhost:8000/watch/${id}?start=${start}&end=${end}`;
-                console.log("Video URL:", url);
-
-                videoPlayer.src = url;
-                videoPlayer.play().catch(e => console.error("Playback failed:", e));
-            }
-
-            function closePlayer() {
-                videoPlayer.pause();
-                playerOverlay.style.display = 'none';
-                videoPlayer.src = "";
-            }
-        </script>
-
-    </body>
-
+      function closePlayer() {
+        videoPlayer.pause();
+        playerOverlay.style.display = "none";
+        videoPlayer.src = "";
+      }
+    </script>
+  </body>
 </html>
