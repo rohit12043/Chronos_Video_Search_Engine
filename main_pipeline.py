@@ -37,7 +37,7 @@ def run():
         temp_audio = "temp_audio.mp3"
         temp_srt = "embedded.srt"
         
-        sidecar_path = os.path.splitext()[0] + ".srt"
+        sidecar_path = os.path.splitext(video_path)[0] + ".srt"
         try:
             print("!! Processing video !!")
             segments = []

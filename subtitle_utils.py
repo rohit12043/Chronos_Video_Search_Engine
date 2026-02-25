@@ -29,4 +29,3 @@ def parse_srt(srt_path):
         return []
     
     return segments
-        
