@@ -35,8 +35,6 @@ def extract_embedded_subtitles(video_path, output_srt_path):
     )
     return os.path.exists(output_srt_path)
 
-
-
 def get_model():
     global model
     if model is None:
@@ -55,6 +53,6 @@ def extract_transcript(video_path, audio_path):
 
     print(f"Transcribing {audio_path}...")
     model = get_model()
-    res = model.transcribe(audio_path)
+    res = model.transcribe(audio_path, fp16=False)
 
     return res['segments']
