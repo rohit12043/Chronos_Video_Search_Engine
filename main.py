@@ -1,13 +1,34 @@
 import os
 import re
 import sqlite3
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import clipper 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Server starting: performing initial file cleanup...")
+    # Clear the clips on startup, and cache the thumbnails
+    dir_list = ["data/clips"]
+    for dir in dir_list:
+        if(os.path.exists(dir)):
+            for file in os.listdir(dir):
+                file_path = os.path.join(dir, file)
+                if os.path.isfile(file_path):
+                    ext = os.path.splitext(file)[1].lower()
+                    if ext == ".mp4":
+                        try:
+                            os.remove(file_path)
+                            print(f"Removed file: {file}")
+                        except OSError as e:
+                            print(f"Error removing file: {e}")
+    yield
+    print("Server shutting down...")
+    
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'],
 )
@@ -45,19 +66,20 @@ def get_video_info(q: str, page_no: int):
     q_param = f'"{q_clean}"'
     results = []
     
-    with sqlite3.connect(DB_NAME) as db:
-        db.row_factory = sqlite3.Row
-        cursor = db.cursor()
-        
-        sql = """
-        SELECT COUNT(*) From Subtitles
-        JOIN Videos on Subtitles.video_id = Videos.id
-        JOIN Subtitles_Idx on Subtitles.id = Subtitles_Idx.rowid
-        WHERE Subtitles_Idx MATCH ?
-        ORDER BY rank, Subtitles.id
-        """
-        cursor.execute(sql, (q_param,))
-        total_count = cursor.fetchone()[0]
+    if(page_no == 0):
+        with sqlite3.connect(DB_NAME) as db:
+            db.row_factory = sqlite3.Row
+            cursor = db.cursor()
+            
+            sql = """
+            SELECT COUNT(*) From Subtitles
+            JOIN Videos on Subtitles.video_id = Videos.id
+            JOIN Subtitles_Idx on Subtitles.id = Subtitles_Idx.rowid
+            WHERE Subtitles_Idx MATCH ?
+            ORDER BY rank, Subtitles.id
+            """
+            cursor.execute(sql, (q_param,))
+            total_count = cursor.fetchone()[0]
 
     with sqlite3.connect(DB_NAME) as db:
         db.row_factory = sqlite3.Row
