@@ -68,7 +68,7 @@ def get_video_info(q: str, page_no: int):
             Videos.filename,
             Subtitles.start_time,
             Subtitles.end_time,
-            highlight(Subtitles_Idx, 0, '<span class="highlight">', '</span>') AS text_content
+            highlight(Subtitles_Idx, 0, '<span class="highlight"><b>', '</b></span>') AS text_content
         FROM Subtitles
         JOIN Videos on Subtitles.video_id = Videos.id
         JOIN Subtitles_Idx on Subtitles.id = Subtitles_Idx.rowid
