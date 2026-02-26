@@ -86,6 +86,26 @@
         font-size: 16px;
         border-radius: 5px;
       }
+
+      .pageButton {
+        padding: 8px 12px;
+        background-color: #333;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .pageButton.active {
+        background: #bb86fc;
+        color: black;
+      }
+
+      #page_container {
+        display: flex;
+        flex-direction: row;
+        gap: 15px;
+      }
     </style>
   </head>
 
@@ -99,6 +119,7 @@
         placeholder="Search quote... (Press Enter)"
       />
       <div id="resultsArea"></div>
+      <div id="page_container"></div>
     </div>
 
     <div id="playerOverlay">
@@ -107,43 +128,73 @@
     </div>
 
     <script>
+      var counter = 0;
+      var pages = 0;
       const searchInput = document.getElementById("searchInput");
       const resultsArea = document.getElementById("resultsArea");
       const playerOverlay = document.getElementById("playerOverlay");
       const videoPlayer = document.getElementById("videoPlayer");
+      const page_container = document.getElementById("page_container");
 
       searchInput.addEventListener("keypress", async (e) => {
         if (e.key === "Enter") {
-          e.preventDefault();
-          const query = searchInput.value;
-          console.log(`Searching for: ${query}`);
-
-          const res = await fetch(`http://localhost:8000/search?q=${query}`);
-          const data = await res.json();
-
-          resultsArea.innerHTML = "";
-
-          if (data.results.length === 0) {
-            resultsArea.innerHTML = "<p>No results found.</p>";
-            return;
-          }
-
-          data.results.forEach((item) => {
-            const div = document.createElement("div");
-            div.className = "result-card";
-            const timeStr = new Date(item.start * 1000)
-              .toISOString()
-              .substr(14, 5);
-            div.innerHTML = `<div class="card"><img width="400" src="/thumbnail/${item.video_id}?time=${item.start}" loading="lazy" alt="Thumbnail"><div class="meta">${item.filename} @ ${timeStr}</div>"${item.text}"</div>`;
-
-            div.onclick = function () {
-              console.log("Clicked:", item);
-              playClip(item.video_id, item.start, item.end);
-            };
-            resultsArea.appendChild(div);
-          });
+          counter = 0;
+          fetchResults(0);
         }
       });
+
+      async function fetchResults(page_no = 0) {
+        const query = searchInput.value;
+        console.log(`Searching for: ${query}`);
+
+        const res = await fetch(
+          `http://localhost:8000/search?q=${query}&page_no=${page_no}`,
+        );
+        const data = await res.json();
+
+        resultsArea.innerHTML = "";
+
+        if (page_no === 0) {
+          pages = Math.ceil(data.total_count / data.page_size);
+          page_container.innerHTML = "";
+
+          for (let i = 0; i < pages; i++) {
+            const btn = document.createElement("button");
+            btn.className = "pageButton";
+            btn.textContent = i + 1;
+
+            btn.addEventListener("click", () => {
+              fetchResults(i);
+            });
+            page_container.appendChild(btn);
+          }
+        }
+
+        const allButtons = document.querySelectorAll(".pageButton");
+        allButtons.forEach((btn, idx) => {
+          btn.classList.toggle("active", idx === page_no);
+        });
+
+        if (data.results.length === 0) {
+          resultsArea.innerHTML = "<p>No results found.</p>";
+          return;
+        }
+
+        data.results.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "result-card";
+          const timeStr = new Date(item.start * 1000)
+            .toISOString()
+            .substr(14, 5);
+          div.innerHTML = `<div class="card"><img width="400" src="/thumbnail/${item.video_id}?time=${item.start}" loading="lazy" alt="Thumbnail"><div class="meta">${item.filename} @ ${timeStr}</div>"${item.text}"</div>`;
+
+          div.onclick = function () {
+            console.log("Clicked:", item);
+            playClip(item.video_id, item.start, item.end);
+          };
+          resultsArea.appendChild(div);
+        });
+      }
 
       function playClip(id, start, end) {
         console.log(

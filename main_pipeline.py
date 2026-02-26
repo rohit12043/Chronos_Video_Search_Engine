@@ -21,7 +21,7 @@ def get_video_metadata(file_path):
 
 def run():
     database.create_tables()
-    video_files = indexer.scan_directory(".")
+    video_files = indexer.scan_directory("./videos")
 
     for video_path in video_files:
         name, dur = get_video_metadata(video_path)

@@ -35,33 +35,52 @@ def get_video_path(video_id):
         return row[0] if row else None
         
 @app.get('/search')
-def get_video_info(q: str):
+def get_video_info(q: str, page_no: int):
     q_clean = re.sub(r'[^a-zA-Z0-9\s]', ' ', q).strip()
     if not q_clean:
         return {"count": 0, "results": []}
 
+    total_count = 0
+    offset = page_no*10
     q_param = f'"{q_clean}"'
     results = []
+    
     with sqlite3.connect(DB_NAME) as db:
         db.row_factory = sqlite3.Row
         cursor = db.cursor()
         
         sql = """
-        SELECT Videos.id as video_id, Videos.filename, Subtitles.start_time, Subtitles.end_time, Subtitles.text_content
-        From Subtitles
+        SELECT COUNT(*) From Subtitles
         JOIN Videos on Subtitles.video_id = Videos.id
         JOIN Subtitles_Idx on Subtitles.id = Subtitles_Idx.rowid
         WHERE Subtitles_Idx MATCH ?
-        ORDER BY rank
-        LIMIT 10;
+        ORDER BY rank, Subtitles.id
         """
         cursor.execute(sql, (q_param,))
+        total_count = cursor.fetchone()[0]
+
+    with sqlite3.connect(DB_NAME) as db:
+        db.row_factory = sqlite3.Row
+        cursor = db.cursor()
+        
+        sql = """
+        SELECT Videos.id as video_id,
+            Videos.filename,
+            Subtitles.start_time,
+            Subtitles.end_time,
+            highlight(Subtitles_Idx, 0, '<span class="highlight">', '</span>') AS text_content
+        FROM Subtitles
+        JOIN Videos on Subtitles.video_id = Videos.id
+        JOIN Subtitles_Idx on Subtitles.id = Subtitles_Idx.rowid
+        WHERE Subtitles_Idx MATCH ?
+        ORDER BY rank, Subtitles.id
+        LIMIT 10 OFFSET ?
+        """
+        cursor.execute(sql, (q_param, offset))
         rows = cursor.fetchall()
         
-        # Sort by start_time so search results appear in chronological order
-        sorted_rows = sorted(rows, key=lambda r: r['start_time'])
         
-        for r in sorted_rows:
+        for r in rows:
             results.append({
                 "video_id": r["video_id"],
                 "filename": r["filename"],
@@ -69,7 +88,11 @@ def get_video_info(q: str):
                 "end": r["end_time"],
                 "text": r["text_content"]
             })
-    return {"count": len(results), "results": results}
+    return {
+        "total_count": total_count if page_no == 0 else None,
+        "page_size": 10,
+        "results": results
+    }
 
 @app.get("/watch/{video_id}")
 def watch_clip(video_id: int, start: float, end: float):
