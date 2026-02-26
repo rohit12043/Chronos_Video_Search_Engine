@@ -48,17 +48,10 @@
         margin-bottom: 5px;
       }
 
-      .text {
-        font-size: 1.1em;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        aspect-ratio: 16/9;
-      }
-
       #playerOverlay {
         display: none;
         position: fixed;
+        z-index: 9999;
         top: 0;
         left: 0;
         width: 100%;
@@ -190,7 +183,7 @@
           const timeStr = new Date(item.start * 1000)
             .toISOString()
             .substr(14, 5);
-          div.innerHTML = `<div class="card"><img width="400" src="/thumbnail/${item.video_id}?time=${item.start}" loading="lazy" alt="Thumbnail"><div class="meta">${item.filename} @ ${timeStr}</div>"${item.text}"</div>`;
+          div.innerHTML = `<div class="card"><img width="400" src="/thumbnail/${item.video_id}?time=${item.start}" loading="lazy" alt="Thumbnail"><div class="meta">${item.filename} @ ${timeStr}</div><div>"${item.text}"</div></div>`;
 
           div.onclick = function () {
             console.log("Clicked:", item);
@@ -199,6 +192,12 @@
           resultsArea.appendChild(div);
         });
       }
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && playerOverlay.style.display !== "none") {
+          closePlayer();
+        }
+      });
 
       function playClip(id, start, end) {
         console.log(
@@ -212,10 +211,11 @@
         }
 
         playerOverlay.style.display = "flex";
+        document.body.style.overflow = "hidden";
 
         const url = `http://localhost:8000/watch/${id}?start=${start}&end=${end}`;
         console.log("Video URL:", url);
-
+        // TODO: Add custom loading animation
         videoPlayer.src = url;
         videoPlayer.play().catch((e) => console.error("Playback failed:", e));
       }
@@ -223,6 +223,7 @@
       function closePlayer() {
         videoPlayer.pause();
         playerOverlay.style.display = "none";
+        document.body.style.overflow = "";
         videoPlayer.src = "";
       }
     </script>
