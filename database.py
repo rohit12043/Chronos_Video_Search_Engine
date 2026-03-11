@@ -4,11 +4,14 @@ import sqlite3
 DB_NAME = "vid_database.db"
 
 def create_tables():
+    """
+    Create the Videos and Subtitles tables with FTS triggers.
+    """
     with sqlite3.connect(DB_NAME) as db:
         cursor = db.cursor()
         vid_table_query = '''
         CREATE TABLE IF NOT EXISTS Videos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY,
             path TEXT NOT NULL,
             filename TEXT NOT NULL,
             duration REAL NOT NULL
@@ -19,11 +22,12 @@ def create_tables():
         
         subtitle_table_query = '''
         CREATE TABLE IF NOT EXISTS Subtitles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY,
             video_id INTEGER NOT NULL,
             start_time REAL NOT NULL,
             end_time REAL NOT NULL,
             text_content TEXT NOT NULL,
+            embedding BLOB,
             FOREIGN KEY (video_id) REFERENCES Videos(id)
         );
         '''
@@ -48,6 +52,9 @@ def create_tables():
         print("Database initialized with FTS Triggers.")
 
 def insert_video(path, filename, duration):
+    """
+    Insert a video record into the database and return its ID.
+    """
     with sqlite3.connect(DB_NAME) as db:
         cursor = db.cursor()
         try:
@@ -58,6 +65,9 @@ def insert_video(path, filename, duration):
         
     
 def insert_subtitles(video_id, segments):
+    """
+    Insert subtitle segments for a given video into the database.
+    """
     data = []
     for s in segments:
         data.append((video_id, s['start'], s['end'], s['text'].strip()))

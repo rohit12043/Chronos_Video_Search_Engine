@@ -1,6 +1,10 @@
 # Ignore Database
 *.db
 
+# Ignore data files
+data/ 
+*.jpg
+
 # Ignore Videos & Audio
 *.mp4
 *.mkv
