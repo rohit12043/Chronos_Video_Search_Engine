@@ -2,10 +2,16 @@ import pysrt
 import re
 
 def clean_tags(text):
+    """
+    Remove HTML or XML tags from text.
+    """
     clean = re.sub(r'<[^>]+>', '', text)
     return clean.strip()
 
 def format_srt_time(time_str):
+    """
+    Convert SRT timestamp string to total seconds.
+    """
     hours, minutes, rest = time_str.split(":")
     seconds, milliseconds = rest.split(",")
     total_seconds = (int(hours)*3600 + int(minutes)*60 + int(seconds) + int(milliseconds)/ 1000.0)
@@ -13,6 +19,9 @@ def format_srt_time(time_str):
     
     
 def parse_srt(srt_path):
+    """
+    Parse an SRT file and return a list of subtitle segments.
+    """
     segments = []
     
     try:

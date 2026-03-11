@@ -3,6 +3,9 @@ import subprocess
 import os
 
 def create_clip(input_path, output_path, start_time, duration):
+    """
+    Create a video clip from input between start_time and duration.
+    """
     start = str(start_time)
     dur = str(duration)
     
@@ -31,6 +34,9 @@ def create_clip(input_path, output_path, start_time, duration):
     return os.path.exists(output_path)
 
 def generate_thumbnail(vid_path, output_path, time):
+    """
+    Generate a thumbnail image at a specific time in a video.
+    """
     time = str(time)
     
     cmd = [

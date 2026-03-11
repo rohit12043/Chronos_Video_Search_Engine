@@ -7,6 +7,9 @@ ROOT_DIR = Path('.')
 EXTENSIONS = ['.mkv', '.mp4']
 
 def scan_directory(root_path):
+    """
+    Scan the given directory recursively for video files that are not yet indexed in the database.
+    """
     all_files = [str(f.resolve()) for f in Path(root_path).rglob('*.*') if f.suffix in EXTENSIONS]
 
     with sqlite3.connect("vid_database.db") as db:
