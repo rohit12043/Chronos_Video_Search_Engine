@@ -5,7 +5,17 @@ import ffmpeg
 
 model = None
 
+def load_model():
+    """
+    Load Whisper transcription model.
+    """
+    global model
+    model = whisper.load_model("tiny")
+    
 def get_text_subtitle_stream(file_path):
+    """
+    Return index of first text subtitle stream or None.
+    """
     try:
         probe = ffmpeg.probe(file_path)
         subtitle_stream_idx = 0
@@ -24,6 +34,9 @@ def get_text_subtitle_stream(file_path):
         return None
     
 def extract_embedded_subtitles(video_path, output_srt_path):
+    """
+    Extract embedded text subtitles to SRT file.
+    """
     srt_index = get_text_subtitle_stream(video_path)
     if srt_index is None:
         return False
@@ -34,15 +47,11 @@ def extract_embedded_subtitles(video_path, output_srt_path):
         stderr=subprocess.DEVNULL
     )
     return os.path.exists(output_srt_path)
-
-def get_model():
-    global model
-    if model is None:
-        print("Loading Whisper model...")
-        model = whisper.load_model("base")
-    return model
         
 def extract_transcript(video_path, audio_path):
+    """
+    Transcribe audio file into text segments.
+    """
     if not os.path.isfile(audio_path):
         print(f"Extracting audio from {video_path}...")
         subprocess.run(
@@ -52,7 +61,6 @@ def extract_transcript(video_path, audio_path):
         )
 
     print(f"Transcribing {audio_path}...")
-    model = get_model()
     res = model.transcribe(audio_path, fp16=False)
 
     return res['segments']

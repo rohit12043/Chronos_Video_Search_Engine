@@ -1,9 +1,13 @@
 import os, ffmpeg
+import embedder
 import indexer, database, transcriber, subtitle_utils
+import vector_store
 
-
-    
+INDEX_FILE = "hnsw.index"
 def get_video_metadata(file_path):
+    """
+    Get format and duration of the video.
+    """
     filename = os.path.basename(file_path)
     
     try:
@@ -20,6 +24,15 @@ def get_video_metadata(file_path):
     return filename, duration
 
 def run():
+    """
+    Process videos: transcribe, embed, and index subtitles.
+    """
+    print("Loading Sentence Embedding model...")
+    embedder.load_model()
+    
+    print("Loading the Whisper model...")
+    transcriber.load_model() 
+    
     database.create_tables()
     video_files = indexer.scan_directory("./videos")
 
@@ -60,6 +73,7 @@ def run():
             if segments:
                 print(f"!! Saving  {len(segments)} subtitle lines... !!")
                 database.insert_subtitles(video_id, segments)
+                embedder.generate_and_store(video_id, segments)
             else:
                 print("!! No dialogues detected. !!")
         except Exception as e:
@@ -68,6 +82,14 @@ def run():
         finally:
                 if os.path.exists(temp_audio):
                     os.remove(temp_audio)
+                    
+    # Build faiss index
+    print("Building vector index...")
+    index = vector_store.build_index()
+    if index:
+        vector_store.save_index(index, INDEX_FILE)
+        print("Vector index saved.")
+    
 
 if __name__ == "__main__":
     run()
