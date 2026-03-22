@@ -34,19 +34,17 @@ async def lifespan(app: FastAPI):
         print("FAISS index not found, vector search unavailable")
         
     print("Server starting: performing initial file cleanup...")
-    # Clear the clips on startup, and cache the thumbnails
-    for dir in CLIPS_DIR:
-        if(os.path.exists(dir)):
-            for file in os.listdir(dir):
-                file_path = os.path.join(dir, file)
-                if os.path.isfile(file_path):
-                    ext = os.path.splitext(file)[1].lower()
-                    if ext == ".mp4":
-                        try:
-                            os.remove(file_path)
-                            print(f"Removed file: {file}")
-                        except OSError as e:
-                            print(f"Error removing file: {e}")
+    # Clear the clips on startup
+    if os.path.exists(CLIPS_DIR):
+        for file in os.listdir(CLIPS_DIR):
+            file_path = os.path.join(CLIPS_DIR, file)
+
+            if os.path.isfile(file_path) and file.endswith(".mp4"):
+                try:
+                    os.remove(file_path)
+                    print(f"Removed file: {file}")
+                except OSError as e:
+                    print(f"Error removing file: {e}")
                             
     # Ensure directory exists
     os.makedirs(CLIPS_DIR, exist_ok=True)
